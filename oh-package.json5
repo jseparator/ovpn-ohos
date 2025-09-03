@@ -1,0 +1,11 @@
+{
+  "modelVersion": "5.0.0",
+  "name": "vpn",
+  "version": "1.0.0",
+  "description": "OpenVPN",
+  "main": "",
+  "author": "WuWei",
+  "license": "",
+  "dependencies": {
+  }
+}

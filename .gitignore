@@ -1,0 +1,8 @@
+local.properties
+.idea
+entry/*-lock.json5
+build/
+oh_modules/
+.preview/
+.cxx/
+.hvigor/
