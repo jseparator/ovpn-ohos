@@ -53,4 +53,11 @@ cd $BUILD_PATH && curl -LO https://github.com/open-source-parsers/jsoncpp/archiv
     make && make install && \
     cd $BUILD_PATH && rm -rf *
 
+fmt_version="11.2.0"
+cd $BUILD_PATH && curl -LO https://github.com/fmtlib/fmt/archive/refs/tags/${fmt_version}.zip && unzip ${fmt_version}.zip && cd fmt-${fmt_version} && \
+    mkdir build && cd build && \
+    cmake .. $CMAKE_REQUIRED_PARAMS -DBUILD_SHARED_LIBS=OFF -DFMT_TEST=OFF && \
+    make && make install && \
+    cd $BUILD_PATH && rm -rf *
+
 cd $DIRECTORY && rm -rf $BUILD_PATH
