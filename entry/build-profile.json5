@@ -28,6 +28,10 @@
       "runtimeOS": "HarmonyOS"
     },
     {
+      "name": "release",
+      "runtimeOS": "HarmonyOS"
+    },
+    {
       "name": "ohosTest",
     }
   ]
