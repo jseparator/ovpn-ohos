@@ -5,7 +5,7 @@ project(VPN)
 
 # Define the variable NATIVERENDER_ROOT_PATH as the root path of the current source code
 set(NATIVERENDER_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR})
-set(LOCAL_OHOS_DIR "/usr/local/ohos")
+set(LOCAL_OHOS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../../dep-ohos")
 set(CMAKE_PREFIX_PATH ${LOCAL_OHOS_DIR})
 set(ENV{PKG_CONFIG_PATH} ${LOCAL_OHOS_DIR}/lib/pkgconfig)
 set(OVPN ${CMAKE_CURRENT_SOURCE_DIR}/openvpn3)
@@ -23,13 +23,7 @@ add_subdirectory(fmt)
 
 link_directories(${LOCAL_OHOS_DIR}/lib)
 
-#set(ASIO_INCLUDE_DIR ${LOCAL_OHOS_DIR}/include)
-#include_directories(${ASIO_INCLUDE_DIR})
 add_definitions(-DUSE_ASIO)
-
-#set(LZ4_LIBRARY ${LOCAL_OHOS_DIR}/lib/liblz4.so)
-#set(LZ4_INCLUDE_DIR ${LOCAL_OHOS_DIR}/include)
-#include_directories(${LZ4_INCLUDE_DIR})
 
 set(OPENSSL_ROOT_DIR "${LOCAL_OHOS_DIR}")
 set(OPENSSL_CRYPTO_LIBRARY ${LOCAL_OHOS_DIR}/lib)

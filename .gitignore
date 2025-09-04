@@ -6,3 +6,5 @@ oh_modules/
 .preview/
 .cxx/
 .hvigor/
+dep-build/
+dep-ohos/
