@@ -27,7 +27,7 @@ export default class OvpnExtAbility extends VpnExtensionAbility {
   private vpnConfig: string = '';
 
   async onCreate(want: Want) {
-    console.info(TAG, `onCreate, want: ${want.abilityName}`);
+    hilog.info(0x0000, TAG, `onCreate, want: ${want.abilityName}`);
     this.VpnConnection = vpnExt.createVpnConnection(this.context);
     hilog.info(0x0000, TAG, `createVpnConnection success`);
     try {
@@ -80,14 +80,7 @@ export default class OvpnExtAbility extends VpnExtensionAbility {
         data: info
       }, () => {
       })
-    }, (info: string) => {
-      hilog.info(0x0000, TAG, `vpnLog ${info}`)
-      commonEventManager.publish('ovpn.LOG', {
-        bundleName,
-        data: info
-      }, () => {
-      })
-    });
+    }, this.context.filesDir);
   }
 
   Protect(socketFd: number) {

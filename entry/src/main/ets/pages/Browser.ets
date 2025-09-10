@@ -38,21 +38,30 @@ struct Browser {
     Column() {
       Row() {
         Flex() {
+          Button('X', { type: ButtonType.Normal, stateEffect: true }).onClick(() => {
+            this.getUIContext().getRouter().back()
+          }).width(50).margin({ left: 2 })
+            .borderRadius({ topLeft: 8, bottomLeft: 8 })
+            .fontColor(Color.Red).fontWeight(FontWeight.Bold)
+
           TextInput({ text: this.url })
             .onChange((v) => {
               this.url = v;
             })
-            .margin({ left: 2 })
+            .borderRadius(0)
             .enterKeyType(EnterKeyType.Go)
             .type(InputType.URL)
             .onSubmit((_, e) => {
               this.controller.loadUrl(e.text)
             })
-          Button('GO').onClick(async () => {
+
+          Button('GO', { type: ButtonType.Normal, stateEffect: true }).onClick(() => {
             this.controller.loadUrl(this.url)
-          }).width(60).fontSize(12).margin({ left: 5 })
+          }).width(60).margin({ right: 2 })
+            .borderRadius({ topRight: 8, bottomRight: 8 })
+            .fontWeight(FontWeight.Bold)
         }
-      }.width('100%').margin({ bottom: 2 })
+      }.width('100%')
 
       Row() {
         Web({ src: this.url, controller: this.controller, renderMode: RenderMode.SYNC_RENDER })
@@ -66,16 +75,17 @@ struct Browser {
           .onHttpErrorReceive((e) => {
             hilog.error(0x0000, TAG, 'WebHttpErr: %{public}s, res: %{public}s', e.request.getRequestUrl(),
               e.response.getReasonMessage());
-            showToast(`WebHttpErr: ${e.request.getRequestUrl()}, ${e.response.getReasonMessage()}`, 3000);
+            showToast(this.getUIContext(), `WebHttpErr: ${e.request.getRequestUrl()}, ${e.response.getReasonMessage()}`,
+              3000);
           })
           .onErrorReceive((e) => {
             hilog.error(0x0000, TAG, 'WebErr: %{public}s, err: %{public}s', e.request.getRequestUrl(),
               e.error.getErrorInfo());
-            showToast(`WebErr: ${e.request.getRequestUrl()}, ${e.error.getErrorInfo()}`, 3000);
+            showToast(this.getUIContext(), `WebErr: ${e.request.getRequestUrl()}, ${e.error.getErrorInfo()}`, 3000);
           })
           .onClientAuthenticationRequest(async (e) => {
             hilog.info(0x0000, TAG, 'ClientAuthReq: %{public}s, types: %{public}s', e.host, e.keyTypes.join(','));
-            showToast(`ClientAuthReq: ${e.host}`, 3000);
+            showToast(this.getUIContext(), `ClientAuthReq: ${e.host}`, 3000);
             try {
               const authUri = await CertMgr.getInstance().grantAppPm(e.host, e.issuers, e.keyTypes)
               e.handler.confirm(authUri);
@@ -102,6 +112,5 @@ struct Browser {
       }.width('100%').height('100%')
     }.width('100%').height('100%')
   }
-
 }
 

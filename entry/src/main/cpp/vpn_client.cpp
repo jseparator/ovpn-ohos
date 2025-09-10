@@ -15,11 +15,12 @@
 
 #include "napi/native_api.h"
 #include "hilog/log.h"
-
+#include <fstream>
+#include <iostream>
 #include <cstring>
+#include <ctime>
 #include <js_native_api.h>
 #include <js_native_api_types.h>
-#include <network/netmanager/net_connection.h>
 #include <client/ovpncli.hpp>
 #include <openvpn/tun/builder/capture.hpp>
 #include "model.hpp"
@@ -39,16 +40,16 @@
     OH_LOG_Print(LOG_APP, LOG_DEBUG, 0x15b0, "NetMgrVpn", "vpn [%{public}s %{public}d] " fmt, MAKE_FILE_NAME,          \
                  __LINE__, ##__VA_ARGS__)
 
-napi_ref cb_log_ref = nullptr;
 napi_ref cb_protect_ref = nullptr;
 napi_ref cb_tun_ref = nullptr;
 napi_ref cb_connected_ref = nullptr;
-napi_threadsafe_function tsfn_log, tsfn_protect, tsfn_tun, tsfn_connected; // 线程安全函数
+napi_threadsafe_function tsfn_protect, tsfn_tun, tsfn_connected; // 线程安全函数
 
 int tun_fd = -1;
 bool tun_done = false;
 std::mutex tun_mtx;
 std::condition_variable tun_cv;
+std::string files_dir;
 
 napi_value ArkTsTunCallBack(napi_env env, napi_callback_info info) {
     size_t argc = 1;
@@ -116,8 +117,15 @@ private:
 //     NetConn_HttpProxy tun_proxy_http;
     std::string tun_proxy_host;
     int tun_proxy_port;
+    std::ofstream logFd;
 
 public:
+    ~Client() {
+        if (logFd.is_open()) {
+            logFd.close();
+        }
+    }
+
     virtual bool pause_on_connection_timeout() override { return false; }
 
     virtual void event(const openvpn::ClientAPI::Event &e) override { // events delivered here
@@ -205,10 +213,16 @@ public:
 
     virtual void log(const openvpn::ClientAPI::LogInfo &l) override { // logging delivered here
         NETMANAGER_VPN_LOGI("%{public}s", l.text.c_str());
-        auto info = new char[l.text.length() + 1];
-        l.text.copy(info, l.text.length());
-        napi_acquire_threadsafe_function(tsfn_log);
-        napi_call_threadsafe_function(tsfn_log, info, napi_tsfn_blocking);
+        if (!logFd.is_open()) {
+            logFd.open(files_dir + "/ovpn.log", std::ios::app);
+            NETMANAGER_VPN_LOGI("%{public}s", "open ovpn.log");
+        }
+
+        auto now = std::time(nullptr);
+        char buf[80];
+        std::strftime(buf, sizeof(buf), "[%Y-%m-%d %H:%M:%S] ", std::localtime(&now));
+        logFd << buf << l.text;
+        logFd.flush();
     }
 
     virtual bool socket_protect(openvpn_io::detail::socket_type socket, std::string remote, bool ipv6) override {
@@ -375,7 +389,7 @@ static napi_value StartVpn(napi_env env, napi_callback_info info) {
     napi_value cb_protect_fn = args[1];
     napi_value cb_tun_fn = args[2];
     napi_value cb_connected_fn = args[3];
-    napi_value cb_log_fn = args[4];
+    files_dir = GetStringFromValueUtf8(env, args[4], 256);
 
     napi_value protect_name;
     napi_create_string_utf8(env, "ProtectSocket", NAPI_AUTO_LENGTH, &protect_name);
@@ -412,21 +426,6 @@ static napi_value StartVpn(napi_env env, napi_callback_info info) {
             napi_call_function(env, nullptr, js_cb, 1, &info, &rv);
         },
         &tsfn_connected);
-    
-    napi_value log_name;
-    napi_create_string_utf8(env, "Log", NAPI_AUTO_LENGTH, &log_name);
-    napi_create_reference(env, cb_log_fn, 1, &cb_log_ref);
-    napi_create_threadsafe_function(
-        env, cb_log_fn, NULL, log_name, 0, 1, NULL, NULL, NULL,
-        [](napi_env env, napi_value js_cb, void *context, void *data) {
-            napi_get_reference_value(env, cb_log_ref, &js_cb);
-            auto v = static_cast<char *>(data);
-            napi_value info, rv;
-            napi_create_string_utf8(env, v, strlen(v), &info);
-            delete[] v;
-            napi_call_function(env, nullptr, js_cb, 1, &info, &rv);
-        },
-        &tsfn_log);
 
     napi_value rv;
     openvpn::ClientAPI::Config config;
@@ -460,15 +459,12 @@ static napi_value StopVpn(napi_env env, napi_callback_info info) {
     client->stop();
     delete client;
 
-    napi_delete_reference(env, cb_log_ref);
     napi_delete_reference(env, cb_protect_ref);
     napi_delete_reference(env, cb_tun_ref);
     napi_delete_reference(env, cb_connected_ref);
-    napi_release_threadsafe_function(tsfn_log, napi_tsfn_release);
     napi_release_threadsafe_function(tsfn_protect, napi_tsfn_release);
     napi_release_threadsafe_function(tsfn_tun, napi_tsfn_release);
     napi_release_threadsafe_function(tsfn_connected, napi_tsfn_release);
-    napi_unref_threadsafe_function(env, tsfn_log);
     napi_unref_threadsafe_function(env, tsfn_protect);
     napi_unref_threadsafe_function(env, tsfn_tun);
     napi_unref_threadsafe_function(env, tsfn_connected);

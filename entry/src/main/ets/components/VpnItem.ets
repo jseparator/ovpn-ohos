@@ -14,6 +14,7 @@ export struct VpnItem {
   @Prop cfg: string = ''
   @Prop fullPath: string = ''
   @State display: boolean = false
+  @State isOn: boolean = false
 
   build() {
     Column() {
@@ -34,12 +35,10 @@ export struct VpnItem {
         .margin({ top: 2, bottom: 2 })
 
         Row() {
-          Checkbox()
-            .select(false)
-            .selectedColor(0xed6f21)
-            .shape(CheckBoxShape.CIRCLE)
-            .onChange(async (v) => {
-              if (v) {
+          Toggle({ type: ToggleType.Switch, isOn: this.isOn })
+            .onChange(async (isOn) => {
+              this.isOn = isOn
+              if (isOn) {
                 await this.startVpn()
               } else {
                 await this.stopVpn()
@@ -51,9 +50,9 @@ export struct VpnItem {
               const fd = await fs.open(this.fullPath, fs.OpenMode.TRUNC | fs.OpenMode.READ_WRITE)
               await fs.write(fd.fd, this.cfg)
               await fs.close(fd)
-              showToast('Save Success', 1000);
+              showToast(this.getUIContext(), 'Save Success', 1000);
             } catch (e) {
-              showToast(`Save Failed: ${JSON.stringify(e)}`, 2000);
+              showToast(this.getUIContext(), `Save Failed: ${JSON.stringify(e)}`, 2000);
               hilog.error(0x0000, TAG, 'SaveBtnErr: %{public}s', JSON.stringify(e));
             }
           }).fontSize(24).margin({ left: 5 })
@@ -65,10 +64,10 @@ export struct VpnItem {
   async startVpn() {
     try {
       await vpnExt.startVpnExtensionAbility({ bundleName, abilityName, parameters: { cfg: this.cfg }})
-      showToast('start vpnExt Success', 2000);
+      showToast(this.getUIContext(), 'start vpnExt Success', 2000);
       hilog.info(0x0000, TAG, '%{public}s', 'start vpnExt Success');
     } catch (err) {
-      showToast('start vpnExt Fail: ' + JSON.stringify(err), 2000);
+      showToast(this.getUIContext(), 'start vpnExt Fail: ' + JSON.stringify(err), 2000);
       hilog.error(0x0000, TAG, 'start vpnExt Fail %{public}s', JSON.stringify(err) ?? '');
     }
   }
@@ -76,10 +75,10 @@ export struct VpnItem {
   async stopVpn() {
     try {
       await vpnExt.stopVpnExtensionAbility({ bundleName, abilityName })
-      showToast('stop vpnExt Success', 2000);
+      showToast(this.getUIContext(), 'stop vpnExt Success', 2000);
       hilog.info(0x0000, TAG, '%{public}s', 'stop vpnExt Success');
     } catch (err) {
-      showToast('stop vpnExt Fail: ' + JSON.stringify(err), 2000);
+      showToast(this.getUIContext(), 'stop vpnExt Fail: ' + JSON.stringify(err), 2000);
       hilog.error(0x0000, TAG, 'stop vpnExt Fail %{public}s', JSON.stringify(err) ?? '');
     }
   }

@@ -19,8 +19,6 @@ include_directories(
     ${LOCAL_OHOS_DIR}/include
     ${OVPN}
 )
-add_subdirectory(fmt)
-
 link_directories(${LOCAL_OHOS_DIR}/lib)
 
 add_definitions(-DUSE_ASIO)
@@ -32,10 +30,6 @@ set(SSL_LIBRARY ${LOCAL_OHOS_DIR}/lib/libssl.a ${LOCAL_OHOS_DIR}/lib/libcrypto.a
 find_package(OpenSSL REQUIRED)
 add_definitions(-DUSE_OPENSSL)
 
-#set(XXHASH_INCLUDE_DIR ${LOCAL_OHOS_DIR}/include)
-
-# AddressSanitize - use CXX=clang++ CC=clang cmake -DCMAKE_BUILD_TYPE=asan to build with ASAN
-# export  UBSAN_OPTIONS=print_stacktrace=1 helps debugging these
 set(CMAKE_C_FLAGS_ASAN
         "-fsanitize=address,undefined -fno-sanitize-recover=all -fno-optimize-sibling-calls -fsanitize-address-use-after-scope -fno-omit-frame-pointer -g -O1"
         CACHE STRING "Flags used by the C compiler during AddressSanitizer builds."
@@ -57,7 +51,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 #set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_C_STANDARD 99)
 #set(CMAKE_BUILD_TYPE Debug)
-#set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE Release)
 
 # Build the shared library vpn_client and add the source code file vpn_client.cpp
 add_library(vpn_client SHARED
@@ -74,4 +68,4 @@ target_link_libraries(vpn_client PUBLIC
                             ${LOCAL_OHOS_DIR}/lib/libssl.a
                             ${LOCAL_OHOS_DIR}/lib/libcrypto.a
                             ${LOCAL_OHOS_DIR}/lib/libjsoncpp.a
-                            fmt)
+                            ${LOCAL_OHOS_DIR}/lib/libfmt.a)

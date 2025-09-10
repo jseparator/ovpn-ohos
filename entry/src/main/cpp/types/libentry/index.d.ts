@@ -13,11 +13,12 @@
  * limitations under the License.
  */
 
-export const startVpn: (content: string,
+export const startVpn: (
+  content: string,
   protectCb: (socketFd: number) => void,
   tunCb: (tunIp: string, mtu: number) => void,
   connectedCb: (info: string) => void,
-  logCb: (info: string) => void)
+  filesDir: string)
 => string;
 
 export const stopVpn: () => number;

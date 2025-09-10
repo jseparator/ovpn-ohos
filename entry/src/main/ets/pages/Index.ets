@@ -3,7 +3,6 @@ import { BUNDLE_NAME } from 'BuildProfile';
 import { connection } from '@kit.NetworkKit';
 import { picker, fileIo as fs, fileUri } from '@kit.CoreFileKit';
 import { BasicDataSource, showToast } from '../components/Common';
-import { router } from '@kit.ArkUI';
 import { BusinessError, commonEventManager } from '@kit.BasicServicesKit';
 import { VpnItem } from '../components/VpnItem';
 
@@ -14,6 +13,7 @@ interface connectData {
   proxy: connection.HttpProxy
 }
 
+let ctx: UIContext
 try {
   commonEventManager.createSubscriber({
     events: ['ovpn.READ_CONFIG_ERR', 'ovpn.CONNECTED', 'ovpn.DESTROY'],
@@ -33,23 +33,9 @@ try {
           const s = data.data as string
           const d = JSON.parse(s) as connectData;
           hilog.info(0x0000, TAG, `Connected: ${d.info}`);
-          if (d.proxy.host) {
-            AlertDialog.show({
-              title: `AutoSetProxy`,
-              message: `SetProxy to ${d.proxy.host}:${d.proxy.port}`,
-              primaryButton: {
-                value: 'Yes',
-                async action() {
-                  hilog.info(0x0000, TAG, `SetProxy: ${d.proxy.host}:${d.proxy.port}`);
-                  setVpnNet(d.proxy)
-                }
-              },
-              secondaryButton: {
-                value: 'No',
-                action() {
-                }
-              }
-            })
+          showToast(ctx, `Connected: ${d.info}`, 3000);
+          if (d.proxy?.host) {
+            setVpnNet(d.proxy)
           }
           return;
         }
@@ -73,10 +59,11 @@ struct Index {
   @State vpnConfig: string = '';
 
   getDir(): string {
-    return getContext(this).filesDir + '/ovpn'
+    return this.getUIContext().getHostContext()?.filesDir + '/ovpn'
   }
 
   async aboutToAppear() {
+    ctx = this.getUIContext()
     const dir = this.getDir()
     try {
       await fs.mkdir(dir)
@@ -115,7 +102,7 @@ struct Index {
       Row() {
         Button('Add').onClick(async () => {
           try {
-            const dp = new picker.DocumentViewPicker(getContext(this));
+            const dp = new picker.DocumentViewPicker();
             const uris = await dp.select({ fileSuffixFilters: ['.ovpn'] })
             if (!uris || !uris.length) {
               return
@@ -131,18 +118,38 @@ struct Index {
               this.data.push({ name: fUri.name, cfg, fullPath })
             }
           } catch (e) {
-            showToast(`fileErr: ${JSON.stringify(e)}`, 4000);
+            showToast(this.getUIContext(), `fileErr: ${JSON.stringify(e)}`, 4000);
           }
         }).fontSize(24).margin({ left: 5 })
 
-        Button('Browser').onClick(async () => {
+        Button('Log').onClick(async () => {
           try {
-            await router.pushUrl({ url: 'pages/Browser' })
+            await this.getUIContext().getRouter().pushUrl({ url: 'pages/Log' })
           } catch (e) {
-            showToast(`browserErr: ${JSON.stringify(e)}`, 4000);
+            showToast(this.getUIContext(), `openLogErr: ${JSON.stringify(e)}`, 4000);
           }
         }).fontSize(24).margin({ left: 5 })
-      }.width('90%').height('12%')
+
+        Button('Clear').onClick(async () => {
+          try {
+            await fs.truncate(this.getUIContext().getHostContext()?.filesDir + '/ovpn.log')
+            showToast(this.getUIContext(), `clear log success`, 1000);
+          } catch (e) {
+            showToast(this.getUIContext(), `clearLogErr: ${JSON.stringify(e)}`, 4000);
+          }
+        }).fontSize(24).margin({ left: 5 })
+
+      }.width('90%').margin({ top: 5, bottom: 5 })
+
+      Row(){
+        Button('Browser').onClick(async () => {
+          try {
+            await this.getUIContext().getRouter().pushUrl({ url: 'pages/Browser' })
+          } catch (e) {
+            showToast(this.getUIContext(), `browserErr: ${JSON.stringify(e)}`, 4000);
+          }
+        }).fontSize(24).margin({ left: 5 })
+      }.width('90%')
     }.width('100%').height('100%')
   }
 }

@@ -13,10 +13,8 @@
 * limitations under the License.
 */
 
-import promptAction from '@ohos.promptAction';
-
-export function showToast(msg: string, dur: number) {
-  promptAction.showToast({
+export function showToast(ctx: UIContext, msg: string, dur: number) {
+  ctx.getPromptAction().showToast({
     message: msg,
     duration: dur
   })

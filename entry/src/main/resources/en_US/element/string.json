@@ -11,14 +11,6 @@
     {
       "name": "EntryAbility_label",
       "value": "OpenVPN"
-    },
-    {
-      "name": "btn_start_vpn",
-      "value": "Start"
-    },
-    {
-      "name": "btn_stop_vpn",
-      "value": "Stop"
     }
   ]
 }
