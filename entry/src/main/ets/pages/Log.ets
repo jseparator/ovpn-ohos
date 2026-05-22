@@ -1,9 +1,13 @@
 import fs from '@ohos.file.fs';
 import { BusinessError } from '@ohos.base';
 
-@Entry
+@Builder
+export function LogBuilder(name: string, param: Object) {
+  Log()
+}
+
 @Component
-struct LogTailComponent {
+export struct Log {
   @State logContent: string = 'loading...';
   private logPath: string = ''; // 日志文件路径
   private isActive: boolean = true;
@@ -75,23 +79,30 @@ struct LogTailComponent {
   }
 
   onPageShow() {
-    setTimeout(() => {
-      this.scroller.scrollEdge(Edge.Bottom);
-    }, 1e3)
+
   }
 
   build() {
-    Scroll(this.scroller) {
-      Text(this.logContent)
-        .fontSize(16)
-        .textAlign(TextAlign.Start)
-        .width('100%')
-        .padding(10)
-        .fontColor(Color.White)
-        .backgroundColor(Color.Black)
-        .borderRadius(8)
+    NavDestination() {
+      Scroll(this.scroller) {
+        Text(this.logContent)
+          .fontSize(16)
+          .textAlign(TextAlign.Start)
+          .width('100%')
+          .padding(10)
+          .fontColor(Color.White)
+          .backgroundColor(Color.Black)
+      }
+      .scrollBar(BarState.Off)
+      .width('100%')
+      .height('100%')
     }
-    .scrollBar(BarState.Off)
-    .height('100vh')
+    .title('日志')
+    .onShown(() => {
+      setTimeout(() => {
+        console.log('滚到末尾')
+        this.scroller.scrollEdge(Edge.Bottom);
+      }, 1000)
+    })
   }
 }

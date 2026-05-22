@@ -16,6 +16,19 @@
 {
   "app": {
     "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "storeFile": "/Users/zhouhao/harmonyoscert/keystore.p12",
+          "storePassword": "0000001A92FAC1328F37EE250908B0F61AF6304F4B5467BD319A9E612A772FA6D3B33A854B0087F6EA41",
+          "keyAlias": "keystoreAlias",
+          "keyPassword": "0000001AF3BF7C4051BF599CFD55C7EFA8FC029CCE2A1D0B0E3052DAED45DC1BF650D5C6E3054B40F3A6",
+          "signAlg": "SHA256withECDSA",
+          "profile": "/Users/zhouhao/harmonyoscert/openvpn_devDebug.p7b",
+          "certpath": "/Users/zhouhao/harmonyoscert/cer_dev.cer"
+        }
+      }
     ],
     "products": [
       {

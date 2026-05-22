@@ -1,0 +1,9 @@
+{
+  "routerMap": [
+    {
+      "name": "Log",
+      "pageSourceFile": "src/main/ets/pages/Log.ets",
+      "buildFunction": "LogBuilder"
+    }
+  ]
+}
