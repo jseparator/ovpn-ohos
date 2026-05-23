@@ -15,8 +15,8 @@
 
 {
   "app": {
-    "bundleName": "com.im5v.vpn",
-    "vendor": "WuWei",
+    "bundleName": "com.cloud.openvpn",
+    "vendor": "Cloud",
     "versionCode": 1000001,
     "versionName": "1.0.1",
     "icon": "$media:icon",

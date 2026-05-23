@@ -192,6 +192,11 @@ public:
             json["info"] = e.info;
             json["proxy"]["host"] = this->tun_proxy_host;
             json["proxy"]["port"] = this->tun_proxy_port;
+            if (!this->tun.addresses.empty()) {
+                json["deviceIp"] = this->tun.addresses[0].address.address;
+            } else {
+                json["deviceIp"] = "";
+            }
             Json::StreamWriterBuilder writer;
             writer["indentation"] = ""; // Set the indentation to an empty string
             std::string v = Json::writeString(writer, json);

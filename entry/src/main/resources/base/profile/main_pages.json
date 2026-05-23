@@ -1,7 +1,5 @@
 {
   "src": [
-    "pages/Index",
-    "pages/Log",
-    "pages/Browser"
+    "pages/Index"
   ]
 }
