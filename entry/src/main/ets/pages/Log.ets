@@ -1,30 +1,32 @@
 import fs from '@ohos.file.fs';
 import { BusinessError } from '@ohos.base';
+import { showToast, getSafeAreaInsets } from '../components/Common';
 
 @Entry
 @Component
 struct LogTailComponent {
   @State logContent: string = 'loading...';
-  private logPath: string = ''; // 日志文件路径
+  @State topAvoid: number = 0;
+  @State bottomAvoid: number = 0;
+  private logPath: string = '';
   private isActive: boolean = true;
   private watcher?: fs.Watcher;
   private scroller: Scroller = new Scroller();
 
-  // 组件创建时开始监听
-  aboutToAppear() {
+  async aboutToAppear() {
+    const insets = await getSafeAreaInsets(this.getUIContext())
+    this.topAvoid = insets.top
+    this.bottomAvoid = insets.bottom
     this.logPath = this.getUIContext().getHostContext()?.filesDir + '/ovpn.log'
     this.startLogTail();
   }
 
-  // 组件销毁时停止监听
   aboutToDisappear() {
     this.stopLogTail();
   }
 
-  // 开始日志监听
   async startLogTail() {
     try {
-      // 检查文件是否存在
       if (!(await this.checkFileExists())) {
         this.logContent = '日志文件不存在';
         return;
@@ -43,7 +45,6 @@ struct LogTailComponent {
     }
   }
 
-  // 停止日志监听
   stopLogTail() {
     this.isActive = false;
     try {
@@ -53,7 +54,6 @@ struct LogTailComponent {
     }
   }
 
-  // 检查文件是否存在
   private async checkFileExists(): Promise<boolean> {
     try {
       const stat = await fs.stat(this.logPath);
@@ -74,6 +74,16 @@ struct LogTailComponent {
     }
   }
 
+  async clearLog() {
+    try {
+      await fs.truncate(this.logPath)
+      this.logContent = ''
+      showToast(this.getUIContext(), 'clear log success', 1000);
+    } catch (e) {
+      showToast(this.getUIContext(), `clearLogErr: ${JSON.stringify(e)}`, 4000);
+    }
+  }
+
   onPageShow() {
     setTimeout(() => {
       this.scroller.scrollEdge(Edge.Bottom);
@@ -81,17 +91,60 @@ struct LogTailComponent {
   }
 
   build() {
-    Scroll(this.scroller) {
-      Text(this.logContent)
-        .fontSize(16)
-        .textAlign(TextAlign.Start)
+    Column() {
+      Row()
         .width('100%')
-        .padding(10)
-        .fontColor(Color.White)
-        .backgroundColor(Color.Black)
-        .borderRadius(8)
+        .height(this.topAvoid)
+        .backgroundColor($r('app.color.top_bar_bg'))
+
+      Row() {
+        Text('‹')
+          .fontSize(28)
+          .fontColor($r('app.color.ovpn_orange'))
+          .padding({ right: 8 })
+          .onClick(() => {
+            this.getUIContext().getRouter().back()
+          })
+
+        Text($r('app.string.log'))
+          .fontSize(20)
+          .fontWeight(FontWeight.Bold)
+          .fontColor($r('app.color.text_primary'))
+          .layoutWeight(1)
+
+        Text('🗑️')
+          .fontSize(22)
+          .padding(8)
+          .onClick(() => this.clearLog())
+      }
+      .width('100%')
+      .height(56)
+      .padding({ left: 12, right: 12 })
+      .backgroundColor($r('app.color.top_bar_bg'))
+
+      Scroll(this.scroller) {
+        Text(this.logContent)
+          .fontSize(13)
+          .fontFamily('monospace')
+          .textAlign(TextAlign.Start)
+          .width('100%')
+          .padding(12)
+          .fontColor('#E0E0E0')
+      }
+      .scrollBar(BarState.Auto)
+      .layoutWeight(1)
+      .width('100%')
+      .backgroundColor($r('app.color.log_bg'))
+      .padding(8)
+
+      Row()
+        .width('100%')
+        .height(this.bottomAvoid)
+        .backgroundColor($r('app.color.page_bg'))
     }
-    .scrollBar(BarState.Off)
-    .height('100vh')
+    .width('100%')
+    .height('100%')
+    .backgroundColor($r('app.color.page_bg'))
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }
 }

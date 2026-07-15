@@ -2,7 +2,59 @@
   "color": [
     {
       "name": "start_window_background",
-      "value": "#0F4364"
+      "value": "#1A1A1A"
+    },
+    {
+      "name": "ovpn_orange",
+      "value": "#EA7D26"
+    },
+    {
+      "name": "page_bg",
+      "value": "#1A1A1A"
+    },
+    {
+      "name": "card_bg",
+      "value": "#252525"
+    },
+    {
+      "name": "text_primary",
+      "value": "#FFFFFF"
+    },
+    {
+      "name": "text_secondary",
+      "value": "#A0A0A8"
+    },
+    {
+      "name": "divider",
+      "value": "#3A3A3A"
+    },
+    {
+      "name": "status_connecting",
+      "value": "#EA7D26"
+    },
+    {
+      "name": "top_bar_bg",
+      "value": "#252525"
+    },
+    {
+      "name": "log_bg",
+      "value": "#111111"
+    },
+    {
+      "name": "stats_bg",
+      "value": "#252525"
+    },
+    {
+      "name": "toggle_on",
+      "value": "#34C759"
+    },
+    {
+      "name": "rate_in",
+      "value": "#FFD60A"
+    },
+    {
+      "name": "rate_out",
+      "value": "#FF9F0A"
     }
   ]
 }

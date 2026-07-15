@@ -13,12 +13,22 @@
  * limitations under the License.
  */
 
+export interface TransportStats {
+  bytesIn: number;
+  bytesOut: number;
+}
+
 export const startVpn: (
   content: string,
-  protectCb: (socketFd: number) => void,
-  tunCb: (tunIp: string, mtu: number) => void,
+  protectCb: (socketFd: number) => void | Promise<void>,
+  tunCb: (tunIp: string) => Promise<number>,
   connectedCb: (info: string) => void,
-  filesDir: string)
-=> string;
+  filesDir: string,
+  statsCb: (statsJson: string) => void,
+  exitCb: (reason: string) => void)
+=> string | null;
 
 export const stopVpn: () => number;
+
+/** JSON string: {"bytesIn":n,"bytesOut":n} */
+export const getTransportStats: () => string;

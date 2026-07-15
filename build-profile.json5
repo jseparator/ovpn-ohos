@@ -16,14 +16,48 @@
 {
   "app": {
     "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "/Users/wuwei/.ohos/config/default_ovpn-ohos_mXo5ETCidRaOcxhs-29MU4oeaHTn6WEY0U0bOXZzgXE=.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001BF4139DB44051435488B75CE3BF827025A4EB5DA1B5037BFA94424485A79AFE224C041832CB2473",
+          "profile": "/Users/wuwei/.ohos/config/default_ovpn-ohos_mXo5ETCidRaOcxhs-29MU4oeaHTn6WEY0U0bOXZzgXE=.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "/Users/wuwei/.ohos/config/default_ovpn-ohos_mXo5ETCidRaOcxhs-29MU4oeaHTn6WEY0U0bOXZzgXE=.p12",
+          "storePassword": "0000001B5E09C7284118F6132A530D87F04DF2FC291E75B526AD325F5BC40E87CFFA7BEEFADB7B0F04C75A"
+        }
+      },
+      {
+        "name": "release",
+        "type": "HarmonyOS",
+        "material": {
+          "storeFile": "/Users/wuwei/Library/Mobile Documents/com~apple~CloudDocs/dev/vpn_key/ovpn_key_store.p12",
+          "storePassword": "0000001E5BA36BFAD4FDB0DBA2225B9534EC626F62358CBF39834237318A33F89A3B2815236B398BB310338A7764",
+          "keyAlias": "releaseKey",
+          "keyPassword": "0000001E605A4966006BD6347DD7BD2C461BB387FD81F196BE69E216730E689FE49342040DB87663892B6B8B1E97",
+          "signAlg": "SHA256withECDSA",
+          "profile": "/Users/wuwei/Library/Mobile Documents/com~apple~CloudDocs/dev/vpn_key/ovpn_releaseRelease.p7b",
+          "certpath": "/Users/wuwei/Library/Mobile Documents/com~apple~CloudDocs/dev/vpn_key/ovpn_release_cert.cer"
+        }
+      }
     ],
     "products": [
       {
         "name": "default",
         "signingConfig": "default",
-        "compatibleSdkVersion": "5.0.3(15)",
+        "compatibleSdkVersion": "6.1.0(23)",
+        "targetSdkVersion": "6.1.0(23)",
         "runtimeOS": "HarmonyOS"
       },
+      {
+        "name": "release",
+        "signingConfig": "release",
+        "compatibleSdkVersion": "6.1.0(23)",
+        "targetSdkVersion": "6.1.0(23)",
+        "runtimeOS": "HarmonyOS"
+      }
     ],
     "buildModeSet": [
       {
@@ -43,6 +77,12 @@
           "name": "default",
           "applyToProducts": [
             "default"
+          ]
+        },
+        {
+          "name": "release",
+          "applyToProducts": [
+            "release"
           ]
         }
       ]

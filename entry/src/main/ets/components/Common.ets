@@ -13,12 +13,40 @@
 * limitations under the License.
 */
 
-export function showToast(ctx: UIContext, msg: string, dur: number) {
-  ctx.getPromptAction().showToast({
-    message: msg,
-    duration: dur
-  })
+import { window } from '@kit.ArkUI';
+import { common } from '@kit.AbilityKit';
+
+export interface SafeAreaInsets {
+  top: number;
+  bottom: number;
 }
+
+/** Top/bottom safe-area insets (in vp), for pages that draw behind the status/nav bars. */
+export async function getSafeAreaInsets(ctx: UIContext): Promise<SafeAreaInsets> {
+  try {
+    const hostCtx = ctx.getHostContext() as common.UIAbilityContext
+    const win = await window.getLastWindow(hostCtx)
+    const sys = win.getWindowAvoidArea(window.AvoidAreaType.TYPE_SYSTEM)
+    const nav = win.getWindowAvoidArea(window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR)
+    return { top: ctx.px2vp(sys.topRect.height), bottom: ctx.px2vp(nav.bottomRect.height) }
+  } catch (e) {
+    return { top: 0, bottom: 0 }
+  }
+}
+
+export function showToast(ctx: UIContext, msg: string, dur: number) {
+  try {
+    ctx.getPromptAction().showToast({
+      message: msg,
+      duration: dur
+    })
+  } catch (error) {
+    console.log('showToastErr: ', error)
+  }
+}
+
+/** Same as AppScope/app.json5 bundleName; avoids BuildProfile (build-generated) import. */
+export const BUNDLE_NAME: string = 'com.im5v.vpn';
 
 // BasicDataSource实现了IDataSource接口，用于管理listener监听，以及通知LazyForEach数据更新
 export class BasicDataSource<T> implements IDataSource {
@@ -35,8 +63,35 @@ export class BasicDataSource<T> implements IDataSource {
     this.notifyDataAdd(this.data.length - 1);
   }
 
+  public remove(index: number): void {
+    if (index < 0 || index >= this.data.length) {
+      return;
+    }
+    this.data.splice(index, 1);
+    this.notifyDataDelete(index);
+  }
+
+  public clear(): void {
+    this.data = [];
+    this.notifyDataReload();
+  }
+
+  public replaceAll(items: T[]): void {
+    this.data = items.slice();
+    this.notifyDataReload();
+  }
+
   public totalCount(): number {
     return this.data.length;
+  }
+
+  public indexOf(predicate: (item: T) => boolean): number {
+    for (let i = 0; i < this.data.length; i++) {
+      if (predicate(this.data[i])) {
+        return i;
+      }
+    }
+    return -1;
   }
 
   public getData(index: number): T {

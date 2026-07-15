@@ -11,6 +11,42 @@
     {
       "name": "EntryAbility_label",
       "value": "OpenVPN"
+    },
+    {
+      "name": "profiles_title",
+      "value": "配置"
+    },
+    {
+      "name": "import_profile",
+      "value": "导入配置"
+    },
+    {
+      "name": "import_file_tab",
+      "value": "文件"
+    },
+    {
+      "name": "browse",
+      "value": "浏览"
+    },
+    {
+      "name": "browse_hint",
+      "value": "从设备中选择 .ovpn 文件以导入连接配置。"
+    },
+    {
+      "name": "empty_profiles",
+      "value": "暂无配置"
+    },
+    {
+      "name": "empty_profiles_hint",
+      "value": "导入 OpenVPN 配置文件以开始使用。"
+    },
+    {
+      "name": "log",
+      "value": "日志"
+    },
+    {
+      "name": "delete",
+      "value": "删除"
     }
   ]
 }

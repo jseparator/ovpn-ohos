@@ -11,6 +11,42 @@
     {
       "name": "EntryAbility_label",
       "value": "OpenVPN"
+    },
+    {
+      "name": "profiles_title",
+      "value": "Profiles"
+    },
+    {
+      "name": "import_profile",
+      "value": "Import Profile"
+    },
+    {
+      "name": "import_file_tab",
+      "value": "FILE"
+    },
+    {
+      "name": "browse",
+      "value": "Browse"
+    },
+    {
+      "name": "browse_hint",
+      "value": "Select a .ovpn file from your device to import a connection profile."
+    },
+    {
+      "name": "empty_profiles",
+      "value": "No profiles yet"
+    },
+    {
+      "name": "empty_profiles_hint",
+      "value": "Import an OpenVPN profile to get started."
+    },
+    {
+      "name": "log",
+      "value": "Log"
+    },
+    {
+      "name": "delete",
+      "value": "Delete"
     }
   ]
 }
