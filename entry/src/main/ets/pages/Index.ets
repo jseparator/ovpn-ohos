@@ -250,9 +250,16 @@ struct Index {
       return
     }
     if (data.event === 'ovpn.ERROR') {
-      const reason = (data.data as string) ?? 'VPN error'
-      hilog.error(0x0000, TAG, `VPN ERROR: ${reason}`)
-      // Transient disconnects are auto-retried in native; only surface fatal errors.
+      const rawReason = (data.data as string) ?? 'VPN error'
+      hilog.error(0x0000, TAG, `VPN ERROR: ${rawReason}`)
+      // Non-fatal (retry-able) errors: show toast only — native auto-reconnects.
+      if (rawReason.startsWith('RETRY:')) {
+        const reason = rawReason.substring('RETRY:'.length)
+        showToast(this.getUIContext(), reason, 3000)
+        return
+      }
+      // Fatal or legacy (no prefix): teardown after toast.
+      const reason = rawReason.startsWith('FATAL:') ? rawReason.substring('FATAL:'.length) : rawReason
       showToast(this.getUIContext(), reason, 3000)
       const hostCtx = this.getUIContext().getHostContext()
       if (hostCtx) {

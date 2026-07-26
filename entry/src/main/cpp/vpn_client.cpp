@@ -218,6 +218,8 @@ void call_js_protect(napi_env env, napi_value js_cb, void *context, void *data) 
     napi_call_function(env, result, catchProperty, 1, &catchCallback, nullptr);
 }
 
+static void NotifyExit(const std::string &reason, bool force = false);
+
 static int g_vpnNetId;
 
 class Client : public openvpn::ClientAPI::OpenVPNClient {
@@ -323,6 +325,28 @@ public:
                 return;
             }
             napi_call_threadsafe_function(tsfn_connected, info, napi_tsfn_blocking);
+        } else if (e.name == "DISCONNECTED" || e.name == "RECONNECTING" ||
+                   e.name == "AUTH_FAILED" || e.name == "TLS_ERROR" ||
+                   e.name == "PROXY_ERROR" || e.name == "EPKI_ERROR" ||
+                   e.name == "CERT_VERIFY_FAIL" || e.name == "TRANSPORT_ERROR" ||
+                   e.name == "TUN_SETUP_FAILED") {
+            // Surface error/failure events to UI as toast-level notifications.
+            std::string msg = e.name + ": " + e.info;
+            NETMANAGER_VPN_LOGE("ovpn error event: %{public}s", msg.c_str());
+            if (e.fatal) {
+                NotifyExit("FATAL:" + msg, true);
+            } else {
+                NotifyExit("RETRY:" + msg);
+            }
+        } else if (e.error) {
+            // Generic error flag — surface it too.
+            std::string msg = e.name + ": " + e.info;
+            NETMANAGER_VPN_LOGE("ovpn error event (generic): %{public}s", msg.c_str());
+            if (e.fatal) {
+                NotifyExit("FATAL:" + msg, true);
+            } else {
+                NotifyExit("RETRY:" + msg);
+            }
         }
     }
 
@@ -606,9 +630,12 @@ static void SafeDeleteRef(napi_env env, napi_ref &ref) {
     ref = nullptr;
 }
 
-static void NotifyExit(const std::string &reason) {
-    if (exit_notified.exchange(true)) {
-        return;
+static void NotifyExit(const std::string &reason, bool force) {
+    if (!force && exit_notified.exchange(true)) {
+        return; // suppress duplicate toast within same attempt, unless forced (FATAL)
+    }
+    if (force) {
+        exit_notified = true; // still block subsequent non-force calls
     }
     if (!tsfn_exit) {
         return;
@@ -723,6 +750,28 @@ static napi_value StartVpn(napi_env env, napi_callback_info info) {
 
     napi_value rv;
     openvpn::ClientAPI::Config config;
+    // 诊断：检查配置是否包含 inline cert 标签，写入日志文件供 Log 页面查看
+    {
+        bool hasCertTag = content.find("<cert>") != std::string::npos;
+        bool hasKeyTag = content.find("<key>") != std::string::npos;
+        bool hasCaTag = content.find("<ca>") != std::string::npos;
+        NETMANAGER_VPN_LOGI("cfg len=%{public}zu hasCa=%{public}d hasCert=%{public}d hasKey=%{public}d",
+                            content.length(), hasCaTag, hasCertTag, hasKeyTag);
+        if (!files_dir.empty()) {
+            std::ofstream diagLog(files_dir + "/ovpn.log", std::ios::app);
+            auto now = std::time(nullptr);
+            char timeBuf[32];
+            std::strftime(timeBuf, sizeof(timeBuf), "[%Y-%m-%d %H:%M:%S] ", std::localtime(&now));
+            diagLog << timeBuf << "DIAG: cfgLen=" << content.length()
+                    << " hasCa=" << hasCaTag << " hasCert=" << hasCertTag
+                    << " hasKey=" << hasKeyTag << std::endl;
+            if (!hasCertTag || !hasKeyTag) {
+                diagLog << timeBuf << "DIAG: MISSING tags! head(200)="
+                        << content.substr(0, std::min<size_t>(200, content.length())) << std::endl;
+            }
+            diagLog.flush();
+        }
+    }
     config.content = content;
     config.echo = true;
     config.info = true;
@@ -730,35 +779,71 @@ static napi_value StartVpn(napi_env env, napi_callback_info info) {
     config.tunPersist = true;
     config.clockTickMS = 1000; // enable Client::clock_tick for live stats
 
-    openvpn::ClientAPI::EvalConfig evCfg = client->eval_config(config);
-    if (evCfg.error) {
-        NETMANAGER_VPN_LOGE("解析配置错误: %{public}s", evCfg.message.c_str());
-        vpn_running = false;
-        SafeDeleteRef(env, cb_protect_ref);
-        SafeDeleteRef(env, cb_tun_ref);
-        SafeDeleteRef(env, cb_connected_ref);
-        SafeDeleteRef(env, cb_stats_ref);
-        SafeDeleteRef(env, cb_exit_ref);
-        SafeReleaseTsfn(env, tsfn_protect);
-        SafeReleaseTsfn(env, tsfn_tun);
-        SafeReleaseTsfn(env, tsfn_connected);
-        SafeReleaseTsfn(env, tsfn_stats);
-        SafeReleaseTsfn(env, tsfn_exit);
-        is_connecting = false;
-        napi_create_string_utf8(env, evCfg.message.c_str(), evCfg.message.length(), &rv);
-        return rv;
+    // Move eval_config into the connect thread — each new Client needs its own
+    // parsed options, since ClientState::attach() is single-use.
+    // Do a quick pre-check first (no side effects).
+    {
+        openvpn::ClientAPI::EvalConfig preCheck = client->eval_config(config);
+        if (preCheck.error) {
+            NETMANAGER_VPN_LOGE("解析配置错误: %{public}s", preCheck.message.c_str());
+            vpn_running = false;
+            SafeDeleteRef(env, cb_protect_ref);
+            SafeDeleteRef(env, cb_tun_ref);
+            SafeDeleteRef(env, cb_connected_ref);
+            SafeDeleteRef(env, cb_stats_ref);
+            SafeDeleteRef(env, cb_exit_ref);
+            SafeReleaseTsfn(env, tsfn_protect);
+            SafeReleaseTsfn(env, tsfn_tun);
+            SafeReleaseTsfn(env, tsfn_connected);
+            SafeReleaseTsfn(env, tsfn_stats);
+            SafeReleaseTsfn(env, tsfn_exit);
+            is_connecting = false;
+            napi_create_string_utf8(env, preCheck.message.c_str(), preCheck.message.length(), &rv);
+            return rv;
+        }
     }
+
+    // Save config payload for connect-thread eval calls (each new Client needs it).
+    std::string saved_content = content;
 
     // Do not detach — StopVpn joins so teardown is race-free.
     if (connect_thread.joinable()) {
         connect_thread.join();
     }
-    connect_thread = std::thread([](std::shared_ptr<Client> cli) {
+    connect_thread = std::thread([saved_content]() {
         // Browser load / brief network blips often end a session; reconnect instead of
         // tearing down VpnExtensionAbility (which removes the system VPN icon).
         int failStreak = 0;
         while (!intentional_stop.load()) {
             vpn_running = true;
+            // Reset per-attempt so NotifyExit can fire for each connect failure.
+            exit_notified = false;
+
+            // ClientState::attach() can only be called once per instance.
+            // Recreate the client for every connect cycle (retry or reconnect).
+            {
+                std::lock_guard<std::mutex> lock(client_mtx);
+                client = std::make_shared<Client>();
+            }
+            std::shared_ptr<Client> cli = client;
+
+            // Each new Client must eval_config before connect.
+            {
+                openvpn::ClientAPI::Config cfg;
+                cfg.content = saved_content;
+                cfg.echo = true;
+                cfg.info = true;
+                cfg.allowLocalLanAccess = true;
+                cfg.tunPersist = true;
+                cfg.clockTickMS = 1000;
+                openvpn::ClientAPI::EvalConfig evCfg = cli->eval_config(cfg);
+                if (evCfg.error) {
+                    NETMANAGER_VPN_LOGE("eval_config error in retry: %{public}s", evCfg.message.c_str());
+                    NotifyExit("FATAL:" + evCfg.message, true);
+                    break;
+                }
+            }
+
             auto status = cli->connect();
             if (intentional_stop.load()) {
                 break;
@@ -769,20 +854,23 @@ static napi_value StartVpn(napi_env env, napi_callback_info info) {
                 NETMANAGER_VPN_LOGE("连接失败, status: %{public}s, msg: %{public}s", status.status.c_str(),
                                     status.message.c_str());
                 failStreak++;
+
+                // Give up after repeated hard failures (e.g. auth / bad config).
+                const bool fatalAuth = reason.find("AUTH") != std::string::npos ||
+                                       reason.find("auth") != std::string::npos ||
+                                       reason.find("PASSWORD") != std::string::npos;
+                if (fatalAuth || failStreak >= 5) {
+                    vpn_running = false;
+                    NotifyExit("FATAL:" + reason + " (" + std::to_string(failStreak) + "/5)", true);
+                    break;
+                }
+
+                // Immediately notify UI so the user sees the error, but keep retrying.
+                NotifyExit("RETRY:" + reason + " (" + std::to_string(failStreak) + "/5)");
             } else {
                 reason = "disconnected";
                 NETMANAGER_VPN_LOGI("OpenVPN 连接断开, will reconnect\n");
                 failStreak = 0; // clean disconnect still retry unless user stopped
-            }
-
-            // Give up after repeated hard failures (e.g. auth / bad config).
-            const bool fatalAuth = reason.find("AUTH") != std::string::npos ||
-                                   reason.find("auth") != std::string::npos ||
-                                   reason.find("PASSWORD") != std::string::npos;
-            if (fatalAuth || failStreak >= 5) {
-                vpn_running = false;
-                NotifyExit(reason);
-                break;
             }
 
             NETMANAGER_VPN_LOGI("auto-reconnect in 2s (streak=%{public}d)", failStreak);
@@ -791,7 +879,7 @@ static napi_value StartVpn(napi_env env, napi_callback_info info) {
             }
         }
         vpn_running = false;
-    }, client);
+    });
     return nullptr;
 }
 
