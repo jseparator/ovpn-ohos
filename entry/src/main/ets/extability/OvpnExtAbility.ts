@@ -39,18 +39,24 @@ export default class OvpnExtAbility extends VpnExtensionAbility {
       bundleName = bi.name;
 
       const params = want.parameters ?? {}
-      this.vpnConfig = (params.cfg as string) ?? ''
+      const paramCfg = (params.cfg as string) ?? ''
       const uiFilesDir = (params.filesDir as string) ?? ''
       const filesDir = uiFilesDir.length > 0 ? uiFilesDir : this.context.filesDir
 
-      // Auth dialog may restart Extension and drop want.parameters — fall back to persisted cfg.
-      if (!this.vpnConfig || this.vpnConfig.length === 0) {
-        hilog.warn(0x0000, TAG, 'want.parameters.cfg empty, reading persisted config')
-        try {
-          this.vpnConfig = await fs.readText(filesDir + ACTIVE_CFG)
-        } catch (readErr) {
-          hilog.error(0x0000, TAG, `read persisted cfg fail: ${JSON.stringify(readErr)}`)
+      // Always prefer the persisted file — want.parameters may truncate large configs
+      // (inline certs + keys can exceed system IPC size limits).
+      try {
+        const fileCfg = await fs.readText(filesDir + ACTIVE_CFG)
+        if (fileCfg && fileCfg.length > 0) {
+          this.vpnConfig = fileCfg
+          hilog.info(0x0000, TAG, `loaded config from file: ${fileCfg.length} bytes`)
+        } else {
+          this.vpnConfig = paramCfg
+          hilog.warn(0x0000, TAG, `config file empty, using params: ${paramCfg.length} bytes`)
         }
+      } catch (_readErr) {
+        this.vpnConfig = paramCfg
+        hilog.warn(0x0000, TAG, `config file not found, using params: ${paramCfg.length} bytes`)
       }
 
       if (!this.vpnConfig || this.vpnConfig.length === 0) {
